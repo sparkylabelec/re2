@@ -25,13 +25,24 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("App initialized, waiting for auth state...");
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      console.log("Auth state changed:", currentUser?.email || "No user");
       setUser(currentUser);
+      
       if (currentUser) {
-        const docRef = doc(db, COL_USERS, currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setUserProfile(docSnap.data() as UserProfile);
+        try {
+          const docRef = doc(db, COL_USERS, currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const profile = docSnap.data() as UserProfile;
+            console.log("User profile loaded:", profile.role);
+            setUserProfile(profile);
+          } else {
+            console.warn("User profile not found in Firestore");
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
         }
       } else {
         setUserProfile(null);
@@ -42,7 +53,9 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) {
+    return <LoadingSpinner fullScreen />;
+  }
 
   return (
     <Router>
